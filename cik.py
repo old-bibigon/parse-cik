@@ -126,19 +126,19 @@ class cikUIK(al_base, Base):
     def search_childs(self, data, recursion=False):
         childs = []
         if self.type_ik == 'ik':
-            txt = re.findall(r'"data" : (\[.*\])', data)[0]
+            url = "http://www.vybory.izbirkom.ru/%s/ik_tree/" % (self.region, )
+            txt = down_data(url, self.local_path + '_childs.js').decode('cp1251')
             vals = simplejson.loads(txt)[0]
-            
+
             self.set_attrs({
-                'iz_id': vals.get('attr', {}).get('id', ''),
+                'iz_id': vals.get('id', ''),
             })
-            print vals
             
             for child in vals.get('children', [] ):
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru' + child.get('data', {}).get('attr', {}).get('href', ''),
-                    'name': child.get('data', {}).get('title', ''),
-                    'iz_id': child.get('attr', {}).get('id', ''),
+                    'url': 'http://www.vybory.izbirkom.ru' + child.get('a_attr', {}).get('href', ''),
+                    'name': child.get('text', ''),
+                    'iz_id': child.get('id', ''),
                     'region': self.region,
                     'parent_id': self.id,
                     'type_ik': 'tik'
@@ -151,9 +151,9 @@ class cikUIK(al_base, Base):
             
             for child in vals:
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru' + child.get('data', {}).get('attr', {}).get('href', ''),
-                    'name': child.get('data', {}).get('title', ''),
-                    'iz_id': child.get('attr', {}).get('id', ''),
+                    'url': 'http://www.vybory.izbirkom.ru' + child.get('a_attr', {}).get('href', ''),
+                    'name': child.get('text', ''),
+                    'iz_id': child.get('id', ''),
                     'region': self.region,
                     'parent_id': self.id,
                     'type_ik': 'uik'
