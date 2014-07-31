@@ -39,10 +39,12 @@ if __name__ == '__main__':
     parser = optparse.OptionParser("usage: %prog")
     parser.add_option("-r", "--region", dest="regions",
                       default='all', help=u'какой регион выкачать')
+    parser.add_option("--db", dest="path_db",
+                      default='cik.sqlite', help=u'путь к дб')
     
     (options, args) = parser.parse_args()
 
-    engine = create_engine('sqlite:///cik.sqlite')
+    engine = create_engine('sqlite:///%s' % (options.path_db, ))
     init_model(engine)
 
     if options.regions == 'all': 
