@@ -34,6 +34,7 @@ all_regions = [ 'adygei',
     "tula", "tyumen", "ulyanovsk", "chelyabinsk", "yaroslavl",
     "moscow_city", "st-petersburg", "jewish_aut", "nenetsk", "khantu-mansy",
     "chukot", "yamal-nenetsk",
+    "crimea", "sevastopol",
 ]
 
 
