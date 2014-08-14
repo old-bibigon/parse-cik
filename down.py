@@ -10,11 +10,6 @@ import datetime
 import optparse
 import logging
 
-from cik import Session, Base, init_model, cikUIK
-from sqlalchemy import create_engine
-
-logging.basicConfig(level = logging.INFO)
-
 all_regions = [ 'adygei',
     "altai_rep", "bashkortostan", "buriat", "dagestan", "ingush",
     "kabardin-balkar", "kalmyk", "karachaev-cherkess", "karel", "komi",
@@ -38,11 +33,20 @@ all_regions = [ 'adygei',
 if __name__ == '__main__':
     parser = optparse.OptionParser("usage: %prog")
     parser.add_option("-r", "--region", dest="regions",
-                      default='all', help=u'какой регион выкачать')
+                      default='all', help=u'какой регион выкачать (через ,)')
     parser.add_option("--db", dest="path_db",
                       default='cik.sqlite', help=u'путь к дб')
+    parser.add_option("-v", "--verbose", dest="debug", action="count",
+                      default=False, help=u'verbose level')
     
     (options, args) = parser.parse_args()
+
+    if options.debug == 1: logging.basicConfig(level = logging.INFO)
+    elif options.debug >= 2: logging.basicConfig(level = logging.DEBUG)
+    else: logging.basicConfig(level = logging.ERROR)
+
+    from cik import Session, Base, init_model, cikUIK
+    from sqlalchemy import create_engine
 
     engine = create_engine('sqlite:///%s' % (options.path_db, ))
     init_model(engine)
@@ -62,4 +66,4 @@ if __name__ == '__main__':
             Session.add(ik)
             
         vals = ik.parse(recursion=True)
-
+        Session.commit()
