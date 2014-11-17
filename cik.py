@@ -117,12 +117,13 @@ class cikUIK(al_base, Base):
 
     def parse(self, update=True, recursion=False):
         u'парсинг комиссии'
-        logging.info('parse %s (%s)', self.name, self.iz_id)
+        logging.info('parse %s (%s) from %s', self.name, self.iz_id, self.url)
         if self.iz_id < -10: #не парсим фейковые (-1 -- временный id для новых ИК)
             return
         data = down_data(self.url, self.local_path + '.htm').decode('cp1251')
         ehtml = lxml.html.fromstring(data)
         
+#        logging.debug('html: %s', lxml.html.tostring(ehtml, encoding='utf8'))
         attrs = {}
         div_main = ehtml.xpath('//div[@id="main"]/*/div[@class="center-colm"]')[0]
         try: attrs['name'] = div_main.xpath('h2')[0].text
@@ -164,7 +165,7 @@ class cikUIK(al_base, Base):
             
             for child in vals.get('children', [] ):
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru' + child.get('a_attr', {}).get('href', ''),
+                    'url': 'http://www.vybory.izbirkom.ru/%s/ik/%s' % (self.region, child.get('id', None)),
                     'name': child.get('text', ''),
                     'iz_id': child.get('id', ''),
                     'region': self.region,
@@ -179,7 +180,7 @@ class cikUIK(al_base, Base):
             
             for child in vals:
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru' + child.get('a_attr', {}).get('href', ''),
+                    'url': 'http://www.vybory.izbirkom.ru/%s/ik/%s' % (self.region, child.get('id', None)),
                     'name': child.get('text', ''),
                     'iz_id': child.get('id', ''),
                     'region': self.region,
@@ -285,7 +286,7 @@ class cikUIK(al_base, Base):
             
         for child in vals:
             extra_names = []
-            child_url = 'http://www.vybory.izbirkom.ru' + child.get('a_attr', {}).get('href', '')
+            child_url = 'http://www.vybory.izbirkom.ru/%s/ik_r/%s' % (self.region, self.reserve_iz_id)
             child_name = child.get('text', '')
             child_id = int( child.get('id', '') )
             if self.type_ik == 'tik' and child_id < 10000 :
