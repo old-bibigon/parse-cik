@@ -16,27 +16,96 @@ import simplejson
 Session = scoped_session(sessionmaker())
 Base = declarative_base()
 
-all_regions = [ 'adygei',
-    "altai_rep", "bashkortostan", "buriat", "dagestan", "ingush",
-    "kabardin-balkar", "kalmyk", "karachaev-cherkess", "karel", "komi",
-    "mari-el", "mordov", "yakut", "n_osset-alania", "tatarstan",
-    "tyva", "udmurt", "khakas", "chechen", "chuvash",
-    "altai_terr", "zabkray", "kamchatka_krai", "krasnodar", "krasnoyarsk",
-    "permkrai", "primorsk", "stavropol", "khabarovsk", "amur",
-    "arkhangelsk", "astrakhan", "belgorod", "bryansk", "vladimir",
-    "volgograd", "vologod", "voronezh", "ivanovo", "irkutsk",
-    "kaliningrad", "kaluga", "kemerovo", "kirov", "kostroma",
-    "kurgan", "kursk", "leningrad-reg", "lipetsk", "magadan",
-    "moscow_reg", "murmansk", "nnov", "novgorod", "novosibirsk",
-    "omsk", "orenburg", "orel", "penza", "pskov",
-    "rostov", "ryazan", "samara", "saratov", "sakhalin",
-    "sverdlovsk", "smolensk", "tambov", "tver", "tomsk",
-    "tula", "tyumen", "ulyanovsk", "chelyabinsk", "yaroslavl",
-    "moscow_city", "st-petersburg", "jewish_aut", "nenetsk", "khantu-mansy",
-    "chukot", "yamal-nenetsk",
-    "crimea", "sevastopol",
-]
+code_of_regions = {
+     '01': 'adygei',
+     '02': 'altai_rep',
+     '03': 'bashkortostan',
+     '04': 'buriat',
+     '05': 'dagestan',
+     '06': 'ingush',
+     '07': 'kabardin-balkar',
+     '08': 'kalmyk',
+     '09': 'karachaev-cherkess',
+     '10': 'karel',
+     '11': 'komi',
+     '12': 'mari-el',
+     '13': 'mordov',
+     '14': 'yakut',
+     '15': 'n_osset-alania',
+     '16': 'tatarstan',
+     '17': 'tyva',
+     '18': 'udmurt',
+     '19': 'khakas',
+     '20': 'chechen',
+     '21': 'chuvash',
+     '22': 'altai_terr',
+     '23': 'krasnodar',
+     '24': 'krasnoyarsk',
+     '25': 'primorsk',
+     '26': 'stavropol',
+     '27': 'khabarovsk',
+     '28': 'amur',
+     '29': 'arkhangelsk',
+     '30': 'astrakhan',
+     '31': 'belgorod',
+     '32': 'bryansk',
+     '33': 'vladimir',
+     '34': 'volgograd',
+     '35': 'vologod',
+     '36': 'voronezh',
+     '37': 'ivanovo',
+     '38': 'irkutsk',
+     '39': 'kaliningrad',
+     '40': 'kaluga',
+     '42': 'kemerovo',
+     '43': 'kirov',
+     '44': 'kostroma',
+     '45': 'kurgan',
+     '46': 'kursk',
+     '47': 'leningrad-reg',
+     '48': 'lipetsk',
+     '49': 'magadan',
+     '50': 'moscow_reg',
+     '51': 'murmansk',
+     '52': 'nnov',
+     '53': 'novgorod',
+     '54': 'novosibirsk',
+     '55': 'omsk',
+     '56': 'orenburg',
+     '57': 'orel',
+     '58': 'penza',
+     '60': 'pskov',
+     '61': 'rostov',
+     '62': 'ryazan',
+     '63': 'samara',
+     '64': 'saratov',
+     '65': 'sakhalin',
+     '66': 'sverdlovsk',
+     '67': 'smolensk',
+     '68': 'tambov',
+     '69': 'tver',
+     '70': 'tomsk',
+     '71': 'tula',
+     '72': 'tyumen',
+     '73': 'ulyanovsk',
+     '74': 'chelyabinsk',
+     '76': 'yaroslavl',
+     '77': 'moscow_city',
+     '78': 'st-petersburg',
+     '79': 'jewish_aut',
+     '83': 'nenetsk',
+     '86': 'khantu-mansy',
+     '87': 'chukot',
+     '89': 'yamal-nenetsk',
+     '90': 'permkrai',
+     '91': 'kamchatka_krai',
+     '92': 'zabkray',
+     '93': 'crimea',
+     '94': 'sevastopol'
+}
 
+all_regions = code_of_regions.values()
+region2code = dict([(y,x) for (x,y) in code_of_regions.items()])
 
 def down_data(url, to_file, force=False):
     if os.path.isfile(to_file) and force == False:
@@ -130,7 +199,9 @@ class cikUIK(al_base, Base):
         except: pass
         
         #аттрибуты комиссии
-        for (k, v) in re.findall( '<p><strong>(.*?): </strong>(.*?)</p>', lxml.html.tostring(div_main, encoding=unicode) ):
+        for (k, v) in re.findall( '<p>\s*<strong>(.*?): </strong>(.*?)\s*</p>', 
+                            lxml.html.tostring(div_main, encoding=unicode),
+                            flags = re.M | re.S ):
             attrs[k] = v
         
         attrs = self.normalize_attrs( attrs )
@@ -155,7 +226,8 @@ class cikUIK(al_base, Base):
         u'выдергивание подчинённых комиссий'
         childs = []
         if self.type_ik == 'ik':
-            url = "http://www.vybory.izbirkom.ru/%s/ik_tree/" % (self.region, )
+            url = "http://www.vybory.izbirkom.ru/region/%s?action=ikTree&region=%s" % (
+                    self.region, region2code[self.region])
             txt = down_data(url, self.local_path + '_childs.js').decode('cp1251')
             vals = simplejson.loads(txt)[0]
 
@@ -165,7 +237,7 @@ class cikUIK(al_base, Base):
             
             for child in vals.get('children', [] ):
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru/%s/ik/%s' % (self.region, child.get('id', None)),
+                    'url': 'http://www.%s.vybory.izbirkom.ru/region/%s?action=ik&vrn=%s' % (self.region, self.region, child.get('id', None)),
                     'name': child.get('text', ''),
                     'iz_id': child.get('id', ''),
                     'region': self.region,
@@ -174,13 +246,15 @@ class cikUIK(al_base, Base):
                })
            
         elif self.type_ik == 'tik':
-            url = "http://www.vybory.izbirkom.ru/%s/ik_tree/?operation=get_children&id=%s" % (self.region, self.iz_id)
+            url = "http://www.vybory.izbirkom.ru/region/%s?action=ikTree&region=%s&vrn=%s&onlyChildren=true" % (
+                self.region, region2code[self.region], self.iz_id)
             txt = down_data(url, self.local_path + '_childs.js').decode('cp1251')
             vals = simplejson.loads(txt)
             
             for child in vals:
                 childs.append({
-                    'url': 'http://www.vybory.izbirkom.ru/%s/ik/%s' % (self.region, child.get('id', None)),
+                    'url': 'http://www.%s.vybory.izbirkom.ru/region/%s?action=ik&vrn=%s' % (
+                        self.region, self.region, child.get('id', None)),
                     'name': child.get('text', ''),
                     'iz_id': child.get('id', ''),
                     'region': self.region,
