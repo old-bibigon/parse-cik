@@ -161,6 +161,12 @@ class cikUIK(al_base, Base):
     address_voteroom = Column( types.String(255) )  #адрес помещения для голосования
     phone_voteroom = Column( types.String(255) )    #телефон помещения для голосования
 
+    lat_ik = Column( types.Float() )                   #широта ИК
+    lon_ik = Column( types.Float() )                   #долгота ИК
+
+    lat_voteroom= Column( types.Float() )              #широта помещения для голосования
+    lon_voteroom = Column( types.Float() )             #долгота помещения для голосования
+
     children = orm.relationship("cikUIK")
     
 #        self.url = 'http://www.%s.vybory.izbirkom.ru/ik/%s' % (region, iz_id or '')
@@ -215,6 +221,22 @@ class cikUIK(al_base, Base):
                             flags = re.M | re.S ):
             attrs[k] = re.sub('</?span.*?>', '', v)
 
+        #координаты ИК
+        try:
+            coord_span = ehtml.xpath('//span[@id="view_in_ik"]')[0]
+            attrs['lat'] = float(coord_span.attrib.get('coordlat'))
+            attrs['lon'] = float(coord_span.attrib.get('coordlon'))
+        except:
+            pass
+
+        #координаты помещения для голования
+        try:
+            coord_span = ehtml.xpath('//span[@id="view_in_map_voteroom"]')[0]
+            attrs['lat'] = float(coord_span.attrib.get('coordlat'))
+            attrs['lon'] = float(coord_span.attrib.get('coordlon'))
+        except:
+            pass
+        
         attrs = self.normalize_attrs( attrs )
         if update:
             self.set_attrs(attrs)
