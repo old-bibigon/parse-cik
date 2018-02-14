@@ -125,6 +125,12 @@ def down_data(url, to_file, force=False):
 class al_base():
     def set_attrs(self, attrs):
         for (k, v) in attrs.items():
+            #обход для несмапленных полей
+            try:
+                hasattr(self, k)
+            except UnicodeEncodeError:
+                k = k.encode('utf8')
+                
             if hasattr(self, k):
                 if v and isinstance(self.__table__.c[k].type, types.DateTime):
                     v = datetime.datetime.strptime( v[:v.find('.')], '%Y-%m-%dT%H:%M:%S')
@@ -142,15 +148,18 @@ class cikUIK(al_base, Base):
 
     parent_id = Column( types.Integer(), ForeignKey('cik_uik.id', ondelete="SET NULL"), index=True )
     type_ik = Column( types.String(10) )
-    region = Column( types.String(50) )
-    url = Column( types.String(255) )
+    region = Column( types.String(50) )             #регион РФ
+    url = Column( types.String(255) )               #url комиссии
     
-    name = Column( types.String(255) )
-    address = Column( types.Text() )
-    phone = Column( types.String(100) )
-    fax = Column( types.String(100) )
-    email = Column( types.String(100) )
-    end_date = Column( types.String(100) ) #дата окончания полномочий
+    name = Column( types.String(255) )              #название
+    address = Column( types.Text() )                #адрес комиссии
+    phone = Column( types.String(100) )             #телефон комиссии
+    fax = Column( types.String(100) )               #факс
+    email = Column( types.String(100) )             #email
+    end_date = Column( types.String(100) )          #дата окончания полномочий
+
+    address_voteroom = Column( types.String(255) )  #адрес помещения для голосования
+    phone_voteroom = Column( types.String(255) )    #телефон помещения для голосования
 
     children = orm.relationship("cikUIK")
     
@@ -178,6 +187,8 @@ class cikUIK(al_base, Base):
             u'Факс': 'fax',
             u'Адрес электронной почты': 'email',
             u'Срок окончания полномочий': 'end_date',
+            u'Адрес помещения для голосования': 'address_voteroom',
+            u'Телефон помещения для голосования': 'phone_voteroom',
         }
         for (k, v) in norm_keys.items():
             if k in attrs:
@@ -202,12 +213,12 @@ class cikUIK(al_base, Base):
         for (k, v) in re.findall( '<p>\s*<strong>(.*?): </strong>(.*?)\s*</p>', 
                             lxml.html.tostring(div_main, encoding=unicode),
                             flags = re.M | re.S ):
-            attrs[k] = v
-        
+            attrs[k] = re.sub('</?span.*?>', '', v)
+
         attrs = self.normalize_attrs( attrs )
         if update:
             self.set_attrs(attrs)
-        
+
         #члены комиссии
         people_tbl = ehtml.xpath('//div[@id="main"]/*/div[@class="center-colm"]//table')[0]
         for p in people_tbl.xpath('.//tr'):
