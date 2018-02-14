@@ -201,12 +201,7 @@ class cikUIK(al_base, Base):
                 attrs[v] = attrs.pop(k)
         return attrs
 
-    def parse(self, update=True, recursion=False):
-        u'парсинг комиссии'
-        logging.info('parse %s (%s) from %s', self.name, self.iz_id, self.url)
-        if self.iz_id < -10: #не парсим фейковые (-1 -- временный id для новых ИК)
-            return
-        data = down_data(self.url, self.local_path + '.htm').decode('cp1251')
+    def parse_data(self, data, update=True, recursion=False):
         ehtml = lxml.html.fromstring(data)
         
 #        logging.debug('html: %s', lxml.html.tostring(ehtml, encoding='utf8'))
@@ -254,6 +249,19 @@ class cikUIK(al_base, Base):
             self.search_childs(data, recursion=True)
 #        Session.commit()
         return attrs
+
+    def parse(self, update=True, recursion=False):
+        u'парсинг комиссии'
+        logging.info('parse %s (%s) from %s', self.name, self.iz_id, self.url)
+        if self.iz_id < -10: #не парсим фейковые (-1 -- временный id для новых ИК)
+            return
+        data = down_data(self.url, self.local_path + '.htm').decode('cp1251')
+        try:
+            self.parse_data(data, update, recursion)
+        except:
+            logging.error(u'Ошибка при загрузке %s (%s) из %s', self.name, self.region, self.url, exc_info=True)
+            if os.path.isfile(self.local_path + '.htm'):
+                os.rename(self.local_path + '.htm', self.local_path + '.htm.error')
     
     def search_childs(self, data, recursion=False):
         u'выдергивание подчинённых комиссий'
