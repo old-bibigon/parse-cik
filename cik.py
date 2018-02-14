@@ -164,7 +164,7 @@ class cikUIK(al_base, Base):
     lat_ik = Column( types.Float() )                   #широта ИК
     lon_ik = Column( types.Float() )                   #долгота ИК
 
-    lat_voteroom= Column( types.Float() )              #широта помещения для голосования
+    lat_voteroom = Column( types.Float() )             #широта помещения для голосования
     lon_voteroom = Column( types.Float() )             #долгота помещения для голосования
 
     children = orm.relationship("cikUIK")
@@ -218,17 +218,17 @@ class cikUIK(al_base, Base):
 
         #координаты ИК
         try:
-            coord_span = ehtml.xpath('//span[@id="view_in_ik"]')[0]
-            attrs['lat'] = float(coord_span.attrib.get('coordlat'))
-            attrs['lon'] = float(coord_span.attrib.get('coordlon'))
+            coord_span = ehtml.xpath('//span[@id="view_in_map_ik"]')[0]
+            attrs['lat_ik'] = float(coord_span.attrib.get('coordlat'))
+            attrs['lon_ik'] = float(coord_span.attrib.get('coordlon'))
         except:
             pass
 
         #координаты помещения для голования
         try:
             coord_span = ehtml.xpath('//span[@id="view_in_map_voteroom"]')[0]
-            attrs['lat'] = float(coord_span.attrib.get('coordlat'))
-            attrs['lon'] = float(coord_span.attrib.get('coordlon'))
+            attrs['lat_voteroom'] = float(coord_span.attrib.get('coordlat'))
+            attrs['lon_voteroom'] = float(coord_span.attrib.get('coordlon'))
         except:
             pass
         
