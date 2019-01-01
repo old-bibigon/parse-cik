@@ -7,7 +7,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 import datetime
 import os
-import urllib
+import urllib2
+import tenacity
 import re
 import logging
 import lxml.html
@@ -107,12 +108,24 @@ code_of_regions = {
 all_regions = code_of_regions.values()
 region2code = dict([(y,x) for (x,y) in code_of_regions.items()])
 
+
+@tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, max=60), stop=tenacity.stop_after_attempt(10))
+def down_data_retry(url):
+	try:
+		data = urllib2.urlopen(url, timeout=60).read()
+		if data == '':
+			raise urllib2.URLError('Empty url content %s', url)
+		return data
+	except:
+		logging.info('Retry to download %s', url)
+		raise
+
 def down_data(url, to_file, force=False):
     if os.path.isfile(to_file) and force == False:
         data = open(to_file).read()
     else:
         try:
-            data = urllib.urlopen(url).read()
+            data = down_data_retry(url)
         except:
             logging.error('Not download %s', url, exc_info=True)
             return ''

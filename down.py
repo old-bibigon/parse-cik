@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #
 
-import urllib
 import os
 import sys
 import pickle
