@@ -114,6 +114,7 @@ def down_data_retry(url):
 	try:
 		data = urllib2.urlopen(url, timeout=60).read()
 		if data == '':
+			logging.info('Empty url content %s', url)
 			raise urllib2.URLError('Empty url content %s', url)
 		return data
 	except:
