@@ -7,7 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 import datetime
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import tenacity
 import re
 import logging
@@ -105,17 +105,17 @@ code_of_regions = {
      '94': 'sevastopol'
 }
 
-all_regions = code_of_regions.values()
-region2code = dict([(y,x) for (x,y) in code_of_regions.items()])
+all_regions = list(code_of_regions.values())
+region2code = dict([(y,x) for (x,y) in list(code_of_regions.items())])
 
 
 @tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, max=60), stop=tenacity.stop_after_attempt(10))
 def down_data_retry(url):
 	try:
-		data = urllib2.urlopen(url, timeout=60).read()
+		data = urllib.request.urlopen(url, timeout=60).read()
 		if data == '':
 			logging.info('Empty url content %s', url)
-			raise urllib2.URLError('Empty url content %s', url)
+			raise urllib.error.URLError('Empty url content %s', url)
 		return data
 	except:
 		logging.info('Retry to download %s', url)
@@ -123,7 +123,7 @@ def down_data_retry(url):
 
 def down_data(url, to_file, force=False):
     if os.path.isfile(to_file) and force == False:
-        data = open(to_file).read()
+        data = open(to_file, 'rb').read()
     else:
         try:
             data = down_data_retry(url)
@@ -133,12 +133,12 @@ def down_data(url, to_file, force=False):
 
         if not os.path.isdir( os.path.dirname(to_file) ):
             os.makedirs(os.path.dirname(to_file))
-        open(to_file, 'wt').write(data)
+        open(to_file, 'wb').write(data)
     return data
 
 class al_base():
     def set_attrs(self, attrs):
-        for (k, v) in attrs.items():
+        for (k, v) in list(attrs.items()):
             #обход для несмапленных полей
             try:
                 hasattr(self, k)
@@ -202,15 +202,15 @@ class cikUIK(al_base, Base):
     
     def normalize_attrs(self, attrs):
         norm_keys = {
-            u'Адрес комиссии': 'address',
-            u'Телефон': 'phone',
-            u'Факс': 'fax',
-            u'Адрес электронной почты': 'email',
-            u'Срок окончания полномочий': 'end_date',
-            u'Адрес помещения для голосования': 'address_voteroom',
-            u'Телефон помещения для голосования': 'phone_voteroom',
+            'Адрес комиссии': 'address',
+            'Телефон': 'phone',
+            'Факс': 'fax',
+            'Адрес электронной почты': 'email',
+            'Срок окончания полномочий': 'end_date',
+            'Адрес помещения для голосования': 'address_voteroom',
+            'Телефон помещения для голосования': 'phone_voteroom',
         }
-        for (k, v) in norm_keys.items():
+        for (k, v) in list(norm_keys.items()):
             if k in attrs:
                 attrs[v] = attrs.pop(k)
         return attrs
@@ -226,7 +226,7 @@ class cikUIK(al_base, Base):
         
         #аттрибуты комиссии
         for (k, v) in re.findall( '<p>\s*<strong>(.*?): </strong>(.*?)\s*</p>', 
-                            lxml.html.tostring(div_main, encoding=unicode),
+                            lxml.html.tostring(div_main, encoding=str),
                             flags = re.M | re.S ):
             attrs[k] = re.sub('</?span.*?>', '', v)
 
@@ -255,7 +255,7 @@ class cikUIK(al_base, Base):
         for p in people_tbl.xpath('.//tr'):
             vals = [x.text_content().strip() for x in p.xpath('.//td') ]
             if len(vals) > 0:
-                people_attrs = dict( zip( ('number', 'fio', 'post', 'party'), vals ) )
+                people_attrs = dict( list(zip( ('number', 'fio', 'post', 'party'), vals )) )
                 people_attrs['ik_id'] = self.id
                 cikPeople.add_or_update(people_attrs)
 
@@ -265,20 +265,20 @@ class cikUIK(al_base, Base):
         return attrs
 
     def parse(self, update=True, recursion=False):
-        u'парсинг комиссии'
+        'парсинг комиссии'
         logging.info('parse %s (%s) from %s', self.name, self.iz_id, self.url)
-        if self.iz_id < -10: #не парсим фейковые (-1 -- временный id для новых ИК)
+        if int(self.iz_id) < -10: #не парсим фейковые (-1 -- временный id для новых ИК)
             return
         data = down_data(self.url, self.local_path + '.htm').decode('cp1251')
         try:
             self.parse_data(data, update, recursion)
         except:
-            logging.error(u'Ошибка при загрузке %s (%s) из %s', self.name, self.region, self.url, exc_info=True)
+            logging.error('Ошибка при загрузке %s (%s) из %s', self.name, self.region, self.url, exc_info=True)
             if os.path.isfile(self.local_path + '.htm'):
                 os.rename(self.local_path + '.htm', self.local_path + '.htm.error')
     
     def search_childs(self, data, recursion=False):
-        u'выдергивание подчинённых комиссий'
+        'выдергивание подчинённых комиссий'
         childs = []
         if self.type_ik == 'ik':
             url = "http://www.vybory.izbirkom.ru/region/%s?action=ikTree&region=%s" % (
@@ -322,13 +322,13 @@ class cikUIK(al_base, Base):
             if uik and recursion: uik.parse(recursion=True)
 
     def parse_reserve(self, recursion=False):
-        u'парсинг составов резервов комиссий'
+        'парсинг составов резервов комиссий'
         if self.type_ik == 'ik':
             url = 'http://www.vybory.izbirkom.ru/%s/ik_r/' % (self.region, )
         elif self.reserve_iz_id != None:
             url = 'http://www.vybory.izbirkom.ru/%s/ik_r/%s' % (self.region, self.reserve_iz_id)
         else:
-            logging.error(u'не указан reserve_id для %s (%s)', self.name, self.id)
+            logging.error('не указан reserve_id для %s (%s)', self.name, self.id)
             return None
 
         data_reserv = down_data(url, self.local_path + '_reserve.htm').decode('cp1251')
@@ -337,43 +337,43 @@ class cikUIK(al_base, Base):
         for p in people_tbl.xpath('.//tr'):
             vals = [x.text_content().strip() for x in p.xpath('.//td') ]
             if len(vals) > 0:
-                people_attrs = dict( zip( ('number', 'fio', 'post', 'party'), vals ) )
+                people_attrs = dict( list(zip( ('number', 'fio', 'post', 'party'), vals )) )
                 people_attrs['ik_id'] = self.id
                 cikPeopleReserve.add_or_update(people_attrs)
         if recursion:
             self.parse_reserve_childs(recursion)
     
     def parse_reserve_childs(self, recursion=False):
-        u'обход резервных составов подчинённых комиссий'
+        'обход резервных составов подчинённых комиссий'
         def generate_many_names(in_name, extra_names=[]):
-            u'''пытаемся придумать множество возможных названий комиссий'''
+            '''пытаемся придумать множество возможных названий комиссий'''
             names = [in_name, ]
             names.extend( [x.lower() for x in extra_names if x])
             
             for nname in [
-                in_name.replace(u'икмо ', u'избирательная комиссия муниципального образования ' ),
-                in_name.replace(u'икмо ', u'избирательная комиссия ' ),
-                in_name.replace(u'территориальная икмо', u'тик муниципального образования'),
-                re.sub( u'№(\s+|0+)', u'№', in_name.replace(u'уик ', u'участковая избирательная комиссия ' )),
+                in_name.replace('икмо ', 'избирательная комиссия муниципального образования ' ),
+                in_name.replace('икмо ', 'избирательная комиссия ' ),
+                in_name.replace('территориальная икмо', 'тик муниципального образования'),
+                re.sub( '№(\s+|0+)', '№', in_name.replace('уик ', 'участковая избирательная комиссия ' )),
             ]:
                 if in_name != nname:
                     names.append(nname)
             
             new_names = []
             for name in names:
-                for nname in [ re.sub(u'(ий|ый)\s+', u'ого ', name.replace(u'район', u'района')),
-                               re.sub(u'ого\s+', u'ый ', name.replace(u'района', u'район')),
-                               re.sub(u'ого\s+', u'ий ', name.replace(u'района', u'район')) ]:
+                for nname in [ re.sub('(ий|ый)\s+', 'ого ', name.replace('район', 'района')),
+                               re.sub('ого\s+', 'ый ', name.replace('района', 'район')),
+                               re.sub('ого\s+', 'ий ', name.replace('района', 'район')) ]:
                     if nname != name:
                         new_names.append(nname)
             names.extend(new_names)
 
-            names.append( in_name.replace(u'избирательная комиссия', '').replace(u'муниципальный','') )
+            names.append( in_name.replace('избирательная комиссия', '').replace('муниципальный','') )
 
             new_names = []
             for name in names:
                 for nname in [name.replace("'", '"'), name.replace('"', "'"), 
-                              u'тик '+name, re.sub('\s+', ' ', name)]:
+                              'тик '+name, re.sub('\s+', ' ', name)]:
                     if nname != name:
                         new_names.append(nname)
 
@@ -390,11 +390,11 @@ class cikUIK(al_base, Base):
             childs_reserve = down_data(url_childs, self.local_path + '_childs_reserve.js').decode('cp1251')
             vals = simplejson.loads(childs_reserve)[0].get('children', [])
             harded_names = {
-                u'муниципальный район Заполярный район': u'ТИК Заполярного района',
-                u'городской округ город Нарьян-Мар': u'ТИК Нарьян-Марского городского округа',
-                u'Территориальная избирательная комиссия муниципального образования "Темкинский район"': u'ТИК муниципального образования "Темкинский район" Смоленской области',
-                u'Избирательная комиссия Можайского муниципального района': u'ТИК Можайского района',
-                u'город Абакан': u'ТИК г. Абакана',
+                'муниципальный район Заполярный район': 'ТИК Заполярного района',
+                'городской округ город Нарьян-Мар': 'ТИК Нарьян-Марского городского округа',
+                'Территориальная избирательная комиссия муниципального образования "Темкинский район"': 'ТИК муниципального образования "Темкинский район" Смоленской области',
+                'Избирательная комиссия Можайского муниципального района': 'ТИК Можайского района',
+                'город Абакан': 'ТИК г. Абакана',
             } #ТИКи которые 
             normal_ik = dict([ (x.name.lower(), x) for x in self.children]) #подчинённые ТИКи для поиска
 
@@ -404,12 +404,12 @@ class cikUIK(al_base, Base):
             vals = simplejson.loads(childs_reserve)
             normal_ik = {}
             for x in self.children:
-                name_x = re.sub( '\s+', ' ', re.sub( u'№(\s+|0+)', u'№', x.name.lower()))
+                name_x = re.sub( '\s+', ' ', re.sub( '№(\s+|0+)', '№', x.name.lower()))
                 normal_ik[name_x] = x
                 #пытаемся выделить номер уика и его приписать
-                m = re.search(ur'№\s*([0-9-]+)(,\1)?(?:\s|\n|$)', x.name.lower())
+                m = re.search(r'№\s*([0-9-]+)(,\1)?(?:\s|\n|$)', x.name.lower())
                 if m:
-                    name_xx = u'уик №%i' % (int(m.groups()[0].replace('-','')), )
+                    name_xx = 'уик №%i' % (int(m.groups()[0].replace('-','')), )
                     if name_xx != name_x:
                         normal_ik[name_xx] = x
             
@@ -419,23 +419,23 @@ class cikUIK(al_base, Base):
             child_name = child.get('text', '')
             child_id = int( child.get('id', '') )
             if self.type_ik == 'tik' and child_id < 10000 :
-                extra_names.append(u'уик №%i' % (child_id, ))
+                extra_names.append('уик №%i' % (child_id, ))
             found_ik = None
             #пытаемся сопоставить по имени дочерний ИК с уже содержащимся в базе
             for name in generate_many_names(child_name.lower(), extra_names=[ harded_names.get(child_name, None) ] + extra_names):
                 if name in normal_ik:
                     found_ik = normal_ik[name]
-                    logging.info(u'сопоставление резерва ИК - %s [%s] == %s (%s)', child_name, name, found_ik.name, found_ik.id)
+                    logging.info('сопоставление резерва ИК - %s [%s] == %s (%s)', child_name, name, found_ik.name, found_ik.id)
                     #found_tik.parse_reserve(url=child_url)
                     found_ik.reserve_iz_id = child_id
                     break
                 else:
-                    logging.debug(u'?= тест %s', name)
+                    logging.debug('?= тест %s', name)
             if not found_ik:
                 #не нашли ИК, придумываем фейковый
-                logging.warn(u'Не удалось найти ИК "%s" региона %s в %s (%s)', 
+                logging.warn('Не удалось найти ИК "%s" региона %s в %s (%s)', 
                             child_name, self.region, self.name, self.id)
-                logging.debug(u'поиск среди: %s', ';'.join(sorted(normal_ik.keys())))
+                logging.debug('поиск среди: %s', ';'.join(sorted(normal_ik.keys())))
                 new_params = {
                         'name': child_name,
                         'region': self.region,
@@ -480,12 +480,12 @@ class cikPeople_base(al_base):
         return people
 
 class cikPeople(cikPeople_base, Base):
-    u'Основной состав комиссии'
+    'Основной состав комиссии'
     __tablename__ = 'cik_people'
     ik_id = Column( types.Integer(), ForeignKey('cik_uik.id', ondelete="CASCADE"), index=True )
 
 class cikPeopleReserve(cikPeople_base, Base):
-    u'Резервный состав комиссии'
+    'Резервный состав комиссии'
     __tablename__ = 'cik_people_reserve'
     ik_id = Column( types.Integer(), ForeignKey('cik_uik.id', ondelete="CASCADE"), index=True )
 
