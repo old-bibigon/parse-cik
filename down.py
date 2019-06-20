@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #
 
-import urllib
 import os
 import sys
 import pickle
@@ -13,13 +12,13 @@ import logging
 if __name__ == '__main__':
     parser = optparse.OptionParser("usage: %prog")
     parser.add_option("-r", "--region", dest="regions",
-                      default='all', help=u'какой регион выкачать (через ,)')
+                      default='all', help='какой регион выкачать (через ,)')
     parser.add_option("--db", dest="path_db",
-                      default='cik.sqlite', help=u'путь к дб')
+                      default='cik.sqlite', help='путь к дб')
     parser.add_option("--with-reserve", dest="with_reserve", action="store_true",
-                      default=False, help=u'скачивать резервы составов')
+                      default=False, help='скачивать резервы составов')
     parser.add_option("-v", "--verbose", dest="debug", action="count",
-                      default=False, help=u'verbose level')
+                      default=False, help='verbose level')
     
     (options, args) = parser.parse_args()
 

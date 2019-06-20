@@ -14,8 +14,8 @@ def test_ik():
         ik.iz_id = 7437000291808
         Session.add(ik)
     vals = ik.parse(recursion=False)
-    for (k, v) in vals.items():
-        print k, v
+    for (k, v) in list(vals.items()):
+        print(k, v)
     
 def test_tik():
     iz_id = 443400194087
@@ -25,8 +25,8 @@ def test_tik():
         Session.add(tik)
     tik.url = 'http://www.kirov.vybory.izbirkom.ru/kirov/ik/443400194087'
     vals = tik.parse(recursion=False)
-    for (k, v) in vals.items():
-        print k, v
+    for (k, v) in list(vals.items()):
+        print(k, v)
     
 
 def test_uik():
